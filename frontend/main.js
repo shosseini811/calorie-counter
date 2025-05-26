@@ -1,15 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const imageUpload = document.getElementById('imageUpload') as HTMLInputElement;
-    const imagePreview = document.getElementById('imagePreview') as HTMLImageElement;
-    const imagePreviewContainer = document.getElementById('imagePreviewContainer') as HTMLDivElement;
-    const analyzeButton = document.getElementById('analyzeButton') as HTMLButtonElement;
-    const analysisText = document.getElementById('analysisText') as HTMLParagraphElement;
-    const resultsContainer = document.getElementById('results') as HTMLDivElement;
-    const loadingIndicator = document.getElementById('loadingIndicator') as HTMLDivElement;
-    const errorMessagesDiv = document.getElementById('errorMessages') as HTMLDivElement;
-    const errorTextP = document.getElementById('errorText') as HTMLParagraphElement;
+    const imageUpload = document.getElementById('imageUpload');
+    const imagePreview = document.getElementById('imagePreview');
+    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    const analyzeButton = document.getElementById('analyzeButton');
+    const analysisText = document.getElementById('analysisText');
+    const resultsContainer = document.getElementById('results');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const errorMessagesDiv = document.getElementById('errorMessages');
+    const errorTextP = document.getElementById('errorText');
 
-    let currentFile: File | null = null;
+    let currentFile = null;
 
     if (!imageUpload || !imagePreview || !analyzeButton || !analysisText || !resultsContainer || !imagePreviewContainer || !loadingIndicator || !errorMessagesDiv || !errorTextP) {
         console.error('One or more essential HTML elements are missing.');
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     analyzeButton.disabled = true; // Disable button initially
 
     imageUpload.addEventListener('change', (event) => {
-        const files = (event.target as HTMLInputElement).files;
+        const files = (event.target).files;
         console.log("Event target", event.target);
         console.log("Files", files);
         // If files is indeed a FileList (a list of files), the .length property tells you how many files are in that list.
@@ -53,12 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("e.target", e.target);
 
                     // The .src property of an <img> element is where you specify the URL of the image to be displayed.
-                    imagePreview.src = e.target.result as string;
+                    imagePreview.src = e.target.result;
                     console.log("imagePreview.src", imagePreview.src);
                     imagePreview.style.display = 'block';
                     imagePreviewContainer.style.display = 'flex'; // Show container
                     analyzeButton.disabled = false; // Enable button when image is selected
-                    analysisText.textContent = 'Image loaded. Click \"Analyze Image\".';
+                    analysisText.textContent = 'Image loaded. Click "Analyze Image".';
                     resultsContainer.style.display = 'none'; // Hide previous results
                     errorMessagesDiv.style.display = 'none'; // Hide previous errors
                 }
@@ -117,8 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
         analysisText.textContent = ''; // Clear previous analysis
 
         try {
-            // Get the API base URL (handles both Electron and browser environments)
-            const apiBaseUrl = (window as any).electronUtils?.getApiBaseUrl?.() || 'http://localhost:5001';
+            // API base URL for the Flask backend
+            const apiBaseUrl = 'http://localhost:5001';
             const response = await fetch(`${apiBaseUrl}/upload`, {
                 method: 'POST',
                 body: formData,
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             resultsContainer.style.display = 'block';
 
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error uploading or analyzing image:', error);
             errorTextP.textContent = `An error occurred: ${error.message || 'Unknown error'}`;
             errorMessagesDiv.style.display = 'block';
