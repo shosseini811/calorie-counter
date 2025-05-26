@@ -1,0 +1,24 @@
+{
+  "name": "calorie-counter-desktop",
+  "version": "1.0.0",
+  "description": "Calorie Counter Desktop App built with Tauri",
+  "scripts": {
+    "flask": "cd backend && source venv/bin/activate && python app.py",
+    "frontend": "cd frontend && npx http-server -p 3000 -c-1",
+    "dev-full": "concurrently \"npm run flask\" \"npm run frontend\"",
+    "tauri": "tauri",
+    "tauri-dev": "tauri dev",
+    "tauri-build": "tauri build",
+    "build-frontend": "echo 'Frontend build complete'"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0",
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.5.0",
+    "@tauri-apps/plugin-shell": "^2.2.1"
+  }
+}

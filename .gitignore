@@ -164,3 +164,7 @@ ENV/
 .venv/
 .env/
 .ENV/
+
+# Tauri
+src-tauri/target/
+src-tauri/Cargo.lock

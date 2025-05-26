@@ -1,0 +1,31 @@
+{
+  "productName": "Calorie Counter",
+  "version": "1.0.0",
+  "identifier": "com.caloriecounter.app",
+  "build": {
+    "beforeBuildCommand": "npm run build-frontend",
+    "frontendDist": "../frontend",
+    "devUrl": "http://localhost:3000"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Calorie Counter",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  },
+  "plugins": {}
+}

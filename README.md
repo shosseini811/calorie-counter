@@ -1,6 +1,6 @@
-# Calorie Counter Web App
+# Calorie Counter Desktop App
 
-This is a web application that allows users to upload an image of food. The backend, built with Python and Flask, sends this image to the Google Gemini API for analysis, which then returns an estimated calorie count and identified food items. The application stores analysis results in a PostgreSQL database along with user device information and food details, and uses Redis for caching to improve performance. The frontend is built with TypeScript and basic HTML/CSS.
+This is a desktop application built with **Tauri v2** that allows users to upload an image of food and get calorie analysis. The backend, built with Python and Flask, sends images to the Google Gemini API for analysis, which returns estimated calorie counts and identified food items. The application stores analysis results in a PostgreSQL database with Redis caching for improved performance.
 
 ## 🎥 Demo
 
@@ -23,15 +23,21 @@ calorie-counter/
 │   ├── main.ts           # TypeScript for frontend logic
 │   ├── tsconfig.json     # TypeScript compiler options
 │   └── dist/             # Compiled JavaScript (main.js will be here after compilation)
-└── README.md           # This file
+├── src-tauri/            # Tauri desktop app configuration
+│   ├── src/main.rs       # Rust application entry point
+│   ├── Cargo.toml        # Rust dependencies
+│   └── tauri.conf.json   # Tauri configuration
+├── package.json          # Node.js dependencies for Tauri
+└── README.md             # This file
 ```
 
 ## Prerequisites
 
-*   Python 3.7+
-*   Node.js and npm (for TypeScript compilation and serving frontend)
-*   A Google Gemini API Key
-*   Redis server (for caching)
+- Python 3.7+
+- Node.js 16+
+- Rust (for Tauri)
+- PostgreSQL database
+- Redis server (optional, for caching)
 
 ## Setup Instructions
 
@@ -106,9 +112,23 @@ npx tsc
 
 This will compile `main.ts` and output `main.js` into a `dist` folder within the `frontend` directory, as specified in `tsconfig.json`.
 
-## Running the Application
+### 4. Tauri Setup
 
-### 1. Start the Backend Server
+Navigate to the root directory:
+
+```bash
+cd ..
+```
+
+Install Tauri dependencies:
+
+```bash
+npm install @tauri-apps/cli @tauri-apps/api
+```
+
+### 5. Running the Application
+
+#### 1. Start the Backend Server
 
 Navigate to the `backend` directory and run the Flask app:
 
@@ -119,27 +139,23 @@ python app.py
 
 The backend server will start, usually on `http://127.0.0.1:5001`.
 
-### 2. Start the Frontend Server
+#### 2. Start the Tauri App
 
 Open a **new terminal window/tab**.
 
-Navigate to the `frontend` directory:
+Navigate to the root directory:
 
 ```bash
-cd frontend # if not already there
+cd ..
 ```
 
-Serve the `index.html` file using a simple HTTP server:
+Run the Tauri app:
 
 ```bash
-http-server .
+npm run tauri dev
 ```
 
-This will typically serve the frontend on `http://127.0.0.1:8080` (or another port if 8080 is busy). The server will show you the exact URL.
-
-### 3. Access the Application
-
-Open your web browser and go to the URL provided by your frontend HTTP server (e.g., `http://127.0.0.1:8080`).
+This will start the Tauri app in development mode.
 
 ## How to Use
 

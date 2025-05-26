@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calorie Counter</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Calorie Counter">
 </head>
 <body>
     <div class="container">
@@ -33,6 +38,21 @@
         </div>
     </div>
 
-    <script src="dist/main.js"></script> 
+    <!-- Electron adapter script -->
+    <script src="../electron/renderer.js"></script>
+    <script src="dist/main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('Service worker registered:', registration);
+                }).catch(registrationError => {
+                    console.error('Service worker registration failed:', registrationError);
+                });
+            });
+        } else {
+            console.error('Service workers are not supported.');
+        }
+    </script>
 </body>
 </html>

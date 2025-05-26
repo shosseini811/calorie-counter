@@ -117,8 +117,9 @@ document.addEventListener('DOMContentLoaded', () => {
         analysisText.textContent = ''; // Clear previous analysis
 
         try {
-            // Make sure your backend is running on port 5001 or update this URL
-            const response = await fetch('http://localhost:5001/upload', {
+            // Get the API base URL (handles both Electron and browser environments)
+            const apiBaseUrl = (window as any).electronUtils?.getApiBaseUrl?.() || 'http://localhost:5001';
+            const response = await fetch(`${apiBaseUrl}/upload`, {
                 method: 'POST',
                 body: formData,
             });

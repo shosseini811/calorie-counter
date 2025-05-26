@@ -410,8 +410,13 @@ def clear_cache():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Simple health check endpoint for Electron app
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok'}), 200
+
 # Route to get Redis cache stats
-@app.route('/admin/cache-stats', methods=['GET'])
+@app.route('/cache-stats', methods=['GET'])
 def cache_stats():
     try:
         # Simple security check - require an admin token
