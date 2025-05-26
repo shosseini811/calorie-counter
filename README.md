@@ -1,6 +1,6 @@
 # Calorie Counter Web App
 
-This is a web application that allows users to upload an image of food. The backend, built with Python and Flask, sends this image to the Google Gemini API for analysis, which then returns an estimated calorie count and identified food items. The application stores analysis results in a PostgreSQL database along with user device information and food details. The frontend is built with TypeScript and basic HTML/CSS.
+This is a web application that allows users to upload an image of food. The backend, built with Python and Flask, sends this image to the Google Gemini API for analysis, which then returns an estimated calorie count and identified food items. The application stores analysis results in a PostgreSQL database along with user device information and food details, and uses Redis for caching to improve performance. The frontend is built with TypeScript and basic HTML/CSS.
 
 ## 🎥 Demo
 
@@ -31,6 +31,7 @@ calorie-counter/
 *   Python 3.7+
 *   Node.js and npm (for TypeScript compilation and serving frontend)
 *   A Google Gemini API Key
+*   Redis server (for caching)
 
 ## Setup Instructions
 
@@ -64,16 +65,22 @@ Install Python dependencies:
 pip install -r requirements.txt
 ```
 
-Set up your Gemini API Key:
+Set up your environment variables:
 
 1.  Rename `.env.example` to `.env`.
-2.  Open the `.env` file and replace `YOUR_GEMINI_API_KEY_HERE` with your actual Google Gemini API key.
+2.  Open the `.env` file and update the following variables:
 
     ```
     GEMINI_API_KEY=your_actual_api_key_goes_here
+    DATABASE_URL=postgresql://user:password@localhost/calorie_counter
+    REDIS_URL=redis://localhost:6379/0
+    ADMIN_TOKEN=your_secure_admin_token_here
     ```
 
-    **Important**: You can obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+    **Important**: 
+    - You can obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+    - The REDIS_URL should point to your Redis server instance.
+    - The ADMIN_TOKEN is used for accessing admin endpoints like cache clearing.
 
 ### 3. Frontend Setup
 
@@ -143,9 +150,21 @@ Open your web browser and go to the URL provided by your frontend HTTP server (e
 5. The estimated calorie count and identified food items will be displayed below the button.
 6. The analysis results and additional metadata are automatically saved to the database.
 
-## Database Features
+## Database and Caching Features
 
-The application uses a PostgreSQL database to store analysis results and additional metadata. The database schema includes:
+The application uses a PostgreSQL database to store analysis results and additional metadata, and Redis for caching to improve performance. 
+
+### Redis Caching
+
+The application uses Redis for the following caching purposes:
+
+* **Image Analysis Caching**: Previously analyzed images are cached to avoid redundant API calls to Gemini
+* **API Response Caching**: Frequently accessed endpoints like `/analyses` are cached for faster response times
+* **Individual Analysis Caching**: Specific analysis results are cached for quicker retrieval
+
+### PostgreSQL Database
+
+The database schema includes:
 
 ### Core Analysis Data
 
@@ -171,12 +190,14 @@ The application uses a PostgreSQL database to store analysis results and additio
 
 ### API Endpoints
 
-The application provides the following API endpoints for database interaction:
+The application provides the following API endpoints for database interaction and cache management:
 
-* `POST /upload`: Upload and analyze an image, saving results to the database
-* `GET /analyses`: Retrieve all past analyses
-* `GET /analyses/<analysis_id>`: Retrieve a specific analysis by ID
-* `POST /analyses/<analysis_id>/location`: Update location data for a specific analysis (requires user permission)
+* `POST /upload`: Upload and analyze an image, saving results to the database and cache
+* `GET /analyses`: Retrieve all past analyses (cached for improved performance)
+* `GET /analyses/<analysis_id>`: Retrieve a specific analysis by ID (cached for improved performance)
+* `PUT /analyses/<analysis_id>/location`: Update location data for a specific analysis (requires user permission)
+* `POST /admin/clear-cache`: Admin endpoint to clear the Redis cache (requires admin token)
+* `GET /admin/cache-stats`: Admin endpoint to get Redis cache statistics (requires admin token)
 
 ## Important Notes
 
@@ -184,4 +205,6 @@ The application provides the following API endpoints for database interaction:
 * **CORS**: The Flask backend has `Flask-CORS` enabled to allow requests from the frontend (which will be on a different port).
 * **Error Handling**: Basic error handling is in place. Check the browser console and backend terminal for more detailed error messages if something goes wrong.
 * **Database Integration**: The application uses PostgreSQL to store analysis results and additional metadata.
+* **Redis Caching**: Redis is used to cache API responses and image analysis results for improved performance.
 * **Data Privacy**: Location data is only collected with explicit user permission.
+* **Admin Features**: The application includes admin endpoints for cache management, protected by an admin token.

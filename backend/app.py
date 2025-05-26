@@ -5,18 +5,27 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 from PIL import Image
 import io
 import uuid
 import json
 import re
+import hashlib
 from user_agents import parse
+import redis
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes
+
+# Configure Redis connection
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
+
+# Redis cache configuration
+CACHE_EXPIRATION = 3600  # Cache expiration time in seconds (1 hour)
 
 # Configure PostgreSQL database
 database_url = os.getenv('DATABASE_URL')
@@ -82,6 +91,32 @@ except ValueError as e:
 # This is a newer model with better performance for food image analysis
 model = genai.GenerativeModel('gemini-2.5-flash-preview-05-20')
 
+# Helper function to generate a hash for an image
+def generate_image_hash(img_bytes):
+    return hashlib.md5(img_bytes).hexdigest()
+
+# Helper function to check if analysis is in Redis cache
+def get_cached_analysis(image_hash):
+    try:
+        cached_data = redis_client.get(f"image_analysis:{image_hash}")
+        if cached_data:
+            return json.loads(cached_data)
+        return None
+    except Exception as e:
+        print(f"Redis cache error: {e}")
+        return None
+
+# Helper function to store analysis in Redis cache
+def cache_analysis(image_hash, analysis_data):
+    try:
+        redis_client.setex(
+            f"image_analysis:{image_hash}",
+            CACHE_EXPIRATION,
+            json.dumps(analysis_data)
+        )
+    except Exception as e:
+        print(f"Redis cache error: {e}")
+
 @app.route('/upload', methods=['POST'])
 def upload_image():
     if 'image' not in request.files:
@@ -97,6 +132,38 @@ def upload_image():
             # Read image bytes
             img_bytes = file.read()
             img = Image.open(io.BytesIO(img_bytes))
+            
+            # Generate a hash of the image for caching
+            image_hash = generate_image_hash(img_bytes)
+            
+            # Check if we have a cached analysis for this image
+            cached_result = get_cached_analysis(image_hash)
+            if cached_result:
+                print(f"Cache hit for image hash: {image_hash}")
+                # Format the cached result to match what the frontend expects
+                # Handle both new format (dict) and old format (string) cached data
+                if isinstance(cached_result, dict) and 'analysis' in cached_result:
+                    # Already in the correct format
+                    formatted_result = cached_result
+                elif isinstance(cached_result, dict):
+                    # Dict but missing 'analysis' field
+                    formatted_result = {
+                        'analysis': str(cached_result),
+                        'id': cached_result.get('id', 'cached-result'),
+                        'created_at': cached_result.get('created_at', datetime.utcnow().isoformat()),
+                        'food_items': cached_result.get('food_items', None),
+                        'device_info': cached_result.get('device_info', {'type': 'web'})
+                    }
+                else:
+                    # String or other format
+                    formatted_result = {
+                        'analysis': str(cached_result),
+                        'id': 'cached-result',
+                        'created_at': datetime.utcnow().isoformat(),
+                        'food_items': None,
+                        'device_info': {'type': 'web'}
+                    }
+                return jsonify(formatted_result), 200
 
             # Prepare the image for the Gemini API
             # The API expects a list of parts, where each part can be text or image data.
@@ -198,38 +265,35 @@ def upload_image():
             try:
                 # Create a new Analysis record with additional information
                 new_analysis = Analysis(
-                    image_filename=file.filename,
-                    analysis_result=analysis_result,
-                    food_items=food_items,
-                    ip_address=ip_address,
-                    user_agent=user_agent_string,
+                    analysis_result=json.dumps(analysis_result),
+                    food_items=json.dumps(food_items) if food_items else None,
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent'),
                     device_type=device_type
-                    # Note: location, latitude, and longitude would be populated
-                    # when the user explicitly provides permission and location data
                 )
-                
-                # Add to database and commit
                 db.session.add(new_analysis)
                 db.session.commit()
                 
-                print(f"Analysis saved to database with ID: {new_analysis.id}")
-                
-                # Return the analysis result along with the database ID and extracted food items
-                return jsonify({
+                # Prepare the response in the format expected by the frontend
+                response_data = {
                     'analysis': analysis_result,
                     'id': new_analysis.id,
                     'created_at': new_analysis.created_at.isoformat(),
                     'food_items': json.loads(food_items) if food_items else None,
                     'device_info': {
                         'type': device_type,
-                        'ip': ip_address
+                        'ip': request.remote_addr
                     }
-                })
+                }
                 
-            except Exception as db_error:
-                print(f"Error saving to database: {db_error}")
-                # If database save fails, still return the analysis to the user
-                return jsonify({'analysis': analysis_result, 'warning': 'Result not saved to database'})
+                # Cache the formatted response
+                cache_analysis(image_hash, response_data)
+                
+                # Return the formatted response
+                return jsonify(response_data), 200
+            except Exception as e:
+                print(f"Error processing image or calling Gemini API: {e}")
+                return jsonify({'error': str(e)}), 500
 
         except Exception as e:
             print(f"Error processing image or calling Gemini API: {e}")
@@ -241,40 +305,58 @@ def upload_image():
 @app.route('/analyses', methods=['GET'])
 def get_analyses():
     try:
-        # Get all analyses ordered by creation date (newest first)
+        # Check if we have this result cached in Redis
+        cache_key = "all_analyses"
+        cached_analyses = redis_client.get(cache_key)
+        
+        if cached_analyses:
+            return jsonify(json.loads(cached_analyses)), 200
+        
+        # Query all analyses from the database, ordered by creation date (newest first)
         analyses = Analysis.query.order_by(Analysis.created_at.desc()).all()
         
         # Convert to list of dictionaries
         analyses_list = [analysis.to_dict() for analysis in analyses]
         
-        return jsonify({
-            'analyses': analyses_list,
-            'count': len(analyses_list)
-        })
+        # Cache the result for 5 minutes
+        redis_client.setex(cache_key, 300, json.dumps(analyses_list))
+        
+        return jsonify(analyses_list), 200
     except Exception as e:
-        print(f"Error retrieving analyses: {e}")
         return jsonify({'error': str(e)}), 500
 
 # Endpoint to get a specific analysis by ID
 @app.route('/analyses/<analysis_id>', methods=['GET'])
 def get_analysis(analysis_id):
     try:
-        # Find the analysis by ID
+        # Check if we have this result cached in Redis
+        cache_key = f"analysis:{analysis_id}"
+        cached_analysis = redis_client.get(cache_key)
+        
+        if cached_analysis:
+            return jsonify(json.loads(cached_analysis)), 200
+        
+        # Query the specific analysis by ID
         analysis = Analysis.query.get(analysis_id)
         
         if not analysis:
             return jsonify({'error': 'Analysis not found'}), 404
         
-        return jsonify(analysis.to_dict())
+        # Convert to dictionary
+        analysis_dict = analysis.to_dict()
+        
+        # Cache the result for 1 hour
+        redis_client.setex(cache_key, CACHE_EXPIRATION, json.dumps(analysis_dict))
+        
+        return jsonify(analysis_dict), 200
     except Exception as e:
-        print(f"Error retrieving analysis: {e}")
         return jsonify({'error': str(e)}), 500
 
 # Endpoint to update location data for an analysis
-@app.route('/analyses/<analysis_id>/location', methods=['POST'])
+@app.route('/analyses/<analysis_id>/location', methods=['PUT'])
 def update_location(analysis_id):
     try:
-        # Find the analysis by ID
+        # Get the analysis by ID
         analysis = Analysis.query.get(analysis_id)
         
         if not analysis:
@@ -282,25 +364,71 @@ def update_location(analysis_id):
         
         # Get location data from request
         data = request.json
-        if not data:
-            return jsonify({'error': 'No location data provided'}), 400
-            
-        # Update location fields
-        if 'location' in data:
-            analysis.location = data['location']
-        if 'latitude' in data and 'longitude' in data:
-            analysis.latitude = data['latitude']
-            analysis.longitude = data['longitude']
-            
-        # Save changes
+        if not data or 'location' not in data or 'coordinates' not in data:
+            return jsonify({'error': 'Missing location data'}), 400
+        
+        # Update the analysis with location data
+        analysis.location = data['location']
+        
+        # Update coordinates if provided
+        if 'coordinates' in data and data['coordinates']:
+            if 'lat' in data['coordinates'] and 'lng' in data['coordinates']:
+                analysis.latitude = data['coordinates']['lat']
+                analysis.longitude = data['coordinates']['lng']
+        
+        # Save to database
         db.session.commit()
         
-        return jsonify({
-            'message': 'Location data updated successfully',
-            'analysis': analysis.to_dict()
-        })
+        # Invalidate related caches
+        cache_key = f"analysis:{analysis_id}"
+        redis_client.delete(cache_key)
+        redis_client.delete("all_analyses")
+        
+        return jsonify({'success': True, 'message': 'Location updated successfully'}), 200
     except Exception as e:
-        print(f"Error updating location data: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# Route to clear Redis cache (for admin/debugging purposes)
+@app.route('/admin/clear-cache', methods=['POST'])
+def clear_cache():
+    try:
+        # Simple security check - require an admin token
+        admin_token = os.getenv('ADMIN_TOKEN')
+        if not admin_token or request.json.get('token') != admin_token:
+            return jsonify({'error': 'Unauthorized'}), 401
+            
+        # Clear all keys with our prefix
+        for key in redis_client.scan_iter("image_analysis:*"):
+            redis_client.delete(key)
+        redis_client.delete("all_analyses")
+        
+        # Clear analysis cache keys
+        for key in redis_client.scan_iter("analysis:*"):
+            redis_client.delete(key)
+            
+        return jsonify({'success': True, 'message': 'Cache cleared successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route to get Redis cache stats
+@app.route('/admin/cache-stats', methods=['GET'])
+def cache_stats():
+    try:
+        # Simple security check - require an admin token
+        admin_token = os.getenv('ADMIN_TOKEN')
+        if not admin_token or request.args.get('token') != admin_token:
+            return jsonify({'error': 'Unauthorized'}), 401
+            
+        # Get cache statistics
+        stats = {
+            'image_analysis_keys': len(list(redis_client.scan_iter("image_analysis:*"))),
+            'analysis_keys': len(list(redis_client.scan_iter("analysis:*"))),
+            'all_analyses_cached': bool(redis_client.exists("all_analyses")),
+            'redis_info': redis_client.info()
+        }
+            
+        return jsonify(stats), 200
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
