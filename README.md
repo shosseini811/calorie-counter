@@ -10,6 +10,10 @@ Watch the application in action:
 
 <video src="https://github.com/user-attachments/assets/d1545a09-a26d-4f83-8d29-35bfc93c95c4" controls width="100%"></video>
 
+### Google Authentication Demo
+
+<video src="https://github.com/user-attachments/assets/e88cd687-168b-4ddb-8e94-17bfc9c6f365" controls width="100%"></video>
+
 ## Project Structure
 
 ```
