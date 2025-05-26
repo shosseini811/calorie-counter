@@ -2,6 +2,8 @@
 
 This is a simplified web application that allows users to upload an image of food. The backend, built with Python and Flask, sends this image to the Google Gemini API for analysis, which then returns an estimated calorie count and identified food items. The frontend is built with TypeScript and basic HTML/CSS.
 
+The application now features Google account authentication, allowing users to sign in with their Google accounts before using the calorie counter service.
+
 ## 🎥 Demo
 
 Watch the application in action:
@@ -15,14 +17,16 @@ calorie-counter/
 ├── backend/
 │   ├── app.py            # Flask backend logic
 │   ├── requirements.txt  # Python dependencies
-│   ├── .env.example      # Example for environment variables (API key)
+│   ├── .env.example      # Example for environment variables (API keys and secrets)
 │   └── .env              # Actual environment variables (you need to create this)
 ├── frontend/
 │   ├── index.html        # Main HTML page
+│   ├── login.html        # Login page with Google authentication
 │   ├── style.css         # CSS for styling
-│   ├── main.ts           # TypeScript for frontend logic
+│   ├── main.ts           # TypeScript for main app logic
+│   ├── login.ts          # TypeScript for login functionality
 │   ├── tsconfig.json     # TypeScript compiler options
-│   └── dist/             # Compiled JavaScript (main.js will be here after compilation)
+│   └── dist/             # Compiled JavaScript (main.js and login.js will be here after compilation)
 └── README.md           # This file
 ```
 
@@ -64,16 +68,21 @@ Install Python dependencies:
 pip install -r requirements.txt
 ```
 
-Set up your Gemini API Key:
+Set up your API Keys and Secrets:
 
 1.  Rename `.env.example` to `.env`.
-2.  Open the `.env` file and replace `YOUR_GEMINI_API_KEY_HERE` with your actual Google Gemini API key.
+2.  Open the `.env` file and add the following:
 
     ```
-    GEMINI_API_KEY=your_actual_api_key_goes_here
+    GEMINI_API_KEY=your_actual_gemini_api_key_goes_here
+    GOOGLE_CLIENT_ID=your_google_oauth_client_id
+    GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+    SECRET_KEY=a_random_secret_key_for_flask_sessions
     ```
 
-    **Important**: You can obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+    **Important**: 
+    - You can obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+    - For Google OAuth credentials (CLIENT_ID and CLIENT_SECRET), set up a project in the [Google Cloud Console](https://console.cloud.google.com/) and create OAuth 2.0 credentials.
 
 ### 3. Frontend Setup
 
@@ -136,15 +145,21 @@ Open your web browser and go to the URL provided by your frontend HTTP server (e
 
 ## How to Use
 
-1.  Click the "Choose File" button to select an image of food from your computer.
-2.  A preview of the image will be displayed.
-3.  Click the "Analyze Image" button.
-4.  Wait for the Gemini API to process the image.
-5.  The estimated calorie count and identified food items will be displayed below the button.
+1.  When you first access the application, you'll be directed to the login page.
+2.  Click the "Sign in with Google" button to authenticate using your Google account.
+3.  After successful authentication, you'll be redirected to the main application.
+4.  Click the "Choose File" button to select an image of food from your computer.
+5.  A preview of the image will be displayed.
+6.  Click the "Analyze Image" button.
+7.  Wait for the Gemini API to process the image.
+8.  The estimated calorie count and identified food items will be displayed below the button.
+9.  You can log out using the logout button in the user profile section.
 
 ## Important Notes
 
-*   **API Key Security**: Never commit your actual `.env` file with the API key to a public repository.
+*   **API Key Security**: Never commit your actual `.env` file with API keys and secrets to a public repository.
 *   **CORS**: The Flask backend has `Flask-CORS` enabled to allow requests from the frontend (which will be on a different port).
 *   **Error Handling**: Basic error handling is in place. Check the browser console and backend terminal for more detailed error messages if something goes wrong.
-*   **Simplification**: This is a simplified version. Production applications would require more robust error handling, security measures, user authentication, a database, better UI/UX, etc.
+*   **Authentication**: The application uses Google OAuth 2.0 for user authentication. In a production environment, you would want to implement additional security measures.
+*   **Session Management**: User sessions are managed using Flask-Login and browser cookies. The session configuration is set for development purposes and should be enhanced for production use.
+*   **Redirect URIs**: Make sure your Google OAuth client has the correct redirect URIs configured (http://localhost:5001/login/callback for development).
