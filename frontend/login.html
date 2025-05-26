@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Calorie Counter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container login-container">
+        <h1>Calorie Counter</h1>
+        <div class="login-box">
+            <h2>Sign in to continue</h2>
+            <p>Please sign in with your Google account to use the calorie counter service.</p>
+            <button id="googleLoginBtn" class="google-login-btn">
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" class="google-icon">
+                Sign in with Google
+            </button>
+            <div id="loginError" class="error-messages" style="display: none;">
+                <p id="loginErrorText"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="dist/login.js"></script>
+</body>
+</html>

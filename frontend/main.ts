@@ -1,4 +1,49 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Check if user is authenticated
+    const user = localStorage.getItem('user');
+    if (!user) {
+        // Redirect to login page if not authenticated
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Add logout button to the page
+    const container = document.querySelector('.container') as HTMLDivElement;
+    const logoutDiv = document.createElement('div');
+    logoutDiv.className = 'user-info';
+    
+    // Parse user data
+    const userData = JSON.parse(user);
+    
+    // Create user info and logout button
+    logoutDiv.innerHTML = `
+        <div class="user-profile">
+            <img src="${userData.picture}" alt="Profile" class="profile-pic">
+            <span class="user-name">${userData.name}</span>
+        </div>
+        <button id="logoutButton" class="logout-btn">Logout</button>
+    `;
+    
+    // Insert at the top of the container
+    container.insertBefore(logoutDiv, container.firstChild);
+    
+    // Add event listener to logout button
+    const logoutButton = document.getElementById('logoutButton') as HTMLButtonElement;
+    logoutButton.addEventListener('click', async () => {
+        try {
+            await fetch('http://localhost:5001/logout', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            // Clear local storage and redirect to login page
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    });
+
     const imageUpload = document.getElementById('imageUpload') as HTMLInputElement;
     const imagePreview = document.getElementById('imagePreview') as HTMLImageElement;
     const imagePreviewContainer = document.getElementById('imagePreviewContainer') as HTMLDivElement;
@@ -121,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('http://localhost:5001/upload', {
                 method: 'POST',
                 body: formData,
+                credentials: 'include', // Include credentials for authentication
             });
 
             if (!response.ok) {

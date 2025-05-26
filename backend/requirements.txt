@@ -1,6 +1,8 @@
-Flask
-Flask-CORS
-python-dotenv
-google-genai
+Flask==2.0.1
+Flask-CORS==3.0.10
+google-generativeai==0.3.1
+requests-oauthlib==1.3.1
+Flask-Login==0.6.2
+python-dotenv==0.21.1
 Pillow
-werkzeug
+werkzeug==2.0.1
