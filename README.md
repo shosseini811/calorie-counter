@@ -2,6 +2,12 @@
 
 This is a simplified web application that allows users to upload an image of food. The backend, built with Python and Flask, sends this image to the Google Gemini API for analysis, which then returns an estimated calorie count and identified food items. The frontend is built with TypeScript and basic HTML/CSS.
 
+## 🎥 Demo
+
+Watch the application in action:
+
+<video src="https://github.com/user-attachments/assets/d1545a09-a26d-4f83-8d29-35bfc93c95c4" controls width="100%"></video>
+
 ## Project Structure
 
 ```
