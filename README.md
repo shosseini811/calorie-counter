@@ -1,6 +1,6 @@
 # Calorie Counter Web App
 
-This is a simplified web application that allows users to upload an image of food. The backend, built with Python and Flask, sends this image to the Google Gemini API for analysis, which then returns an estimated calorie count and identified food items. The frontend is built with TypeScript and basic HTML/CSS.
+This is a web application that allows users to upload an image of food. The backend, built with Python and Flask, sends this image to the Google Gemini API for analysis, which then returns an estimated calorie count and identified food items. The application stores analysis results in a PostgreSQL database along with user device information and food details. The frontend is built with TypeScript and basic HTML/CSS.
 
 ## 🎥 Demo
 
@@ -136,15 +136,52 @@ Open your web browser and go to the URL provided by your frontend HTTP server (e
 
 ## How to Use
 
-1.  Click the "Choose File" button to select an image of food from your computer.
-2.  A preview of the image will be displayed.
-3.  Click the "Analyze Image" button.
-4.  Wait for the Gemini API to process the image.
-5.  The estimated calorie count and identified food items will be displayed below the button.
+1. Click the "Choose File" button to select an image of food from your computer.
+2. A preview of the image will be displayed.
+3. Click the "Analyze Image" button.
+4. Wait for the Gemini API to process the image.
+5. The estimated calorie count and identified food items will be displayed below the button.
+6. The analysis results and additional metadata are automatically saved to the database.
+
+## Database Features
+
+The application uses a PostgreSQL database to store analysis results and additional metadata. The database schema includes:
+
+### Core Analysis Data
+
+* **Analysis ID**: Unique identifier for each analysis
+* **Image Filename**: Name of the uploaded image file
+* **Analysis Result**: Full text response from the Gemini API
+* **Created At**: Timestamp when the analysis was performed
+
+### Food-Specific Data
+
+* **Food Items**: Automatically extracted list of food items identified in the image
+
+### User Device Information
+
+* **IP Address**: User's IP address
+* **User Agent**: Browser and device information
+* **Device Type**: Categorized as 'web', 'mobile', 'tablet', or 'other'
+
+### Location Data (with user permission)
+
+* **Location**: Text description of the user's location
+* **Latitude/Longitude**: Geographic coordinates
+
+### API Endpoints
+
+The application provides the following API endpoints for database interaction:
+
+* `POST /upload`: Upload and analyze an image, saving results to the database
+* `GET /analyses`: Retrieve all past analyses
+* `GET /analyses/<analysis_id>`: Retrieve a specific analysis by ID
+* `POST /analyses/<analysis_id>/location`: Update location data for a specific analysis (requires user permission)
 
 ## Important Notes
 
-*   **API Key Security**: Never commit your actual `.env` file with the API key to a public repository.
-*   **CORS**: The Flask backend has `Flask-CORS` enabled to allow requests from the frontend (which will be on a different port).
-*   **Error Handling**: Basic error handling is in place. Check the browser console and backend terminal for more detailed error messages if something goes wrong.
-*   **Simplification**: This is a simplified version. Production applications would require more robust error handling, security measures, user authentication, a database, better UI/UX, etc.
+* **API Key Security**: Never commit your actual `.env` file with the API key to a public repository.
+* **CORS**: The Flask backend has `Flask-CORS` enabled to allow requests from the frontend (which will be on a different port).
+* **Error Handling**: Basic error handling is in place. Check the browser console and backend terminal for more detailed error messages if something goes wrong.
+* **Database Integration**: The application uses PostgreSQL to store analysis results and additional metadata.
+* **Data Privacy**: Location data is only collected with explicit user permission.
