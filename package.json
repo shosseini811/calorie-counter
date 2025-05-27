@@ -11,7 +11,9 @@
     "tauri-build": "tauri build",
     "build-frontend": "echo 'Frontend build complete'"
   },
-  "author": "",
+  "author": "Soheil Hosseini",
+  "email": "soheilhosseini@gmail.com",
+  "url": "https://github.com/soheilhosseini/calorie-counter",
   "license": "MIT",
   "devDependencies": {
     "@tauri-apps/cli": "^2.5.0",
